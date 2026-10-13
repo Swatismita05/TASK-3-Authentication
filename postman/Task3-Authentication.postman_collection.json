@@ -1,0 +1,74 @@
+{
+  "info": {
+    "name": "Task 3 - Authentication System",
+    "description": "API checks for the WeIntern Task 3 authentication project. Register/login requests save the returned JWT for protected-route tests.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:5000" },
+    { "key": "token", "value": "" },
+    { "key": "testEmail", "value": "alex.task3@example.com" },
+    { "key": "testUsername", "value": "alex_task3" },
+    { "key": "testPassword", "value": "ExamplePass123!" }
+  ],
+  "item": [
+    {
+      "name": "Health check",
+      "request": { "method": "GET", "url": "{{baseUrl}}/api/health" }
+    },
+    {
+      "name": "Register",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "if (pm.response.code === 201) {",
+        "  const data = pm.response.json();",
+        "  pm.collectionVariables.set('token', data.token);",
+        "}",
+        "pm.test('Registration returns success or expected duplicate', function () { pm.expect([201, 409]).to.include(pm.response.code); });"
+      ]}}],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"username\": \"{{testUsername}}\",\n  \"email\": \"{{testEmail}}\",\n  \"password\": \"{{testPassword}}\"\n}" },
+        "url": "{{baseUrl}}/api/auth/register"
+      }
+    },
+    {
+      "name": "Login",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "if (pm.response.code === 200) { pm.collectionVariables.set('token', pm.response.json().token); }",
+        "pm.test('Login succeeded', function () { pm.expect(pm.response.code).to.eql(200); });"
+      ]}}],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"email\": \"{{testEmail}}\",\n  \"password\": \"{{testPassword}}\"\n}" },
+        "url": "{{baseUrl}}/api/auth/login"
+      }
+    },
+    {
+      "name": "Get my profile (protected)",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+        "url": "{{baseUrl}}/api/users/me"
+      }
+    },
+    {
+      "name": "Logout (clear cookie)",
+      "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{}" }, "url": "{{baseUrl}}/api/auth/logout" }
+    },
+    {
+      "name": "Protected route without token (expect 401)",
+      "request": { "method": "GET", "url": "{{baseUrl}}/api/users/me" }
+    },
+    {
+      "name": "Wrong password (expect 401)",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"email\": \"{{testEmail}}\",\n  \"password\": \"definitely-wrong-password\"\n}" },
+        "url": "{{baseUrl}}/api/auth/login"
+      }
+    }
+  ]
+}
